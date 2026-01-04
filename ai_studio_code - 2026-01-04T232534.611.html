@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- This tag is crucial: It hides your website info from the audio server to prevent blocking -->
+    <meta name="referrer" content="no-referrer">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Singer Project</title>
+    <style>
+        :root {
+            --primary: #00f2ff;
+            --secondary: #bd00ff;
+            --bg: #05050a;
+            --panel: #11111a;
+            --text: #ffffff;
+            --error: #ff4444;
+        }
+
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrolling on mobile background */
+        }
+
+        /* Sci-fi Background Grid */
+        .bg-grid {
+            position: absolute;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            background-image: 
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(189, 0, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            transform: perspective(300px) rotateX(45deg);
+            animation: gridMove 20s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes gridMove {
+            0% { transform: perspective(300px) rotateX(45deg) translateY(0); }
+            100% { transform: perspective(300px) rotateX(45deg) translateY(40px); }
+        }
+
+        .container {
+            background: rgba(17, 17, 26, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            width: 95%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+
+        h1 {
+            margin: 0;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        /* Visualizer Circle */
+        .visualizer-container {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: #000;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px var(--primary);
+            border: 2px solid var(--primary);
+            transition: 0.3s;
+        }
+
+        .visualizer-container.active {
+            box-shadow: 0 0 30px var(--secondary);
+            border-color: var(--secondary);
+            transform: scale(1.05);
+        }
+
+        .bars {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 40px;
+        }
+
+        .bar {
+            width: 5px;
+            background: var(--primary);
+            border-radius: 2px;
+            height: 5px;
+            transition: height 0.1s;
+        }
+
+        .visualizer-container.active .bar {
+            background: var(--secondary);
+            animation: bounce 0.4s infinite alternate;
+        }
+        
+        /* Staggered animation for wave effect */
+        .visualizer-container.active .bar:nth-child(1) { animation-delay: 0.0s; }
+        .visualizer-container.active .bar:nth-child(2) { animation-delay: 0.1s; }
+        .visualizer-container.active .bar:nth-child(3) { animation-delay: 0.2s; }
+        .visualizer-container.active .bar:nth-child(4) { animation-delay: 0.1s; }
+        .visualizer-container.active .bar:nth-child(5) { animation-delay: 0.0s; }
+
+        @keyframes bounce {
+            0% { height: 5px; }
+            100% { height: 30px; }
+        }
+
+        /* Inputs */
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #08080f;
+            border: 1px solid #333;
+            border-radius: 12px;
+            color: #fff;
+            padding: 12px;
+            font-size: 1rem;
+            resize: none;
+            outline: none;
+            margin-bottom: 15px;
+        }
+
+        textarea:focus { border-color: var(--primary); }
+
+        select {
+            width: 100%;
+            background: #08080f;
+            color: #ccc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        /* Beat Toggle */
+        .beat-option {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            color: #aaa;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            cursor: pointer;
+        }
+        
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
+        /* Buttons */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+        }
+
+        .btn-sing {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            box-shadow: 0 4px 15px rgba(189, 0, 255, 0.3);
+        }
+
+        .btn-sing:active { transform: scale(0.95); }
+
+        .btn-save {
+            background: #222;
+            color: #ccc;
+            border: 1px solid #333;
+        }
+
+        .btn-save:active { background: #333; }
+
+        #status {
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #666;
+            min-height: 1.2em;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-grid"></div>
+
+    <div class="container">
+        <div class="visualizer-container" id="visualizer">
+            <div class="bars">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+        </div>
+
+        <h1>AI Vocalizer</h1>
+        <div class="subtitle">School Project Edition</div>
+
+        <textarea id="textInput" placeholder="Type lyrics here... (e.g. 'I am the best, I pass the test!')"></textarea>
+
+        <select id="voiceSelect">
+            <option value="Brian">🎤 Voice: Brian (Male)</option>
+            <option value="Amy">🎤 Voice: Amy (Female)</option>
+            <option value="Salli">🎤 Voice: Salli (Teen Female)</option>
+            <option value="Matthew">🎤 Voice: Matthew (Deep Male)</option>
+            <option value="Glados">🤖 Voice: Robot</option>
+        </select>
+
+        <label class="beat-option">
+            <input type="checkbox" id="beatCheckbox" checked>
+            Play Rap Beat
+        </label>
+
+        <div class="btn-group">
+            <button class="btn-sing" onclick="startPerformance()">▶ Sing</button>
+            <button class="btn-save" onclick="downloadAudio()">💾 Save</button>
+        </div>
+
+        <div id="status">Ready</div>
+    </div>
+
+    <script>
+        /* --- Logic Core --- */
+        
+        // Settings
+        const STREAM_API = "https://api.streamelements.com/kappa/v2/speech";
+        // Fallback API (Google) in case StreamElements fails
+        const GOOGLE_API = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en";
+
+        // Variables
+        let audioPlayer = new Audio();
+        let audioContext = null; // For the beat
+        let beatTimer = null;
+        let currentBlobUrl = null; // Stores the downloadable file
+        let isPlaying = false;
+
+        // UI Elements
+        const statusEl = document.getElementById('status');
+        const visualizer = document.getElementById('visualizer');
+        const textInput = document.getElementById('textInput');
+        const beatCheckbox = document.getElementById('beatCheckbox');
+
+        // 1. Initialize Audio Context (Fixes mobile beat issue)
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        // 2. The Main Function
+        async function startPerformance() {
+            const text = textInput.value.trim();
+            if (!text) {
+                showStatus("Please type some lyrics first!", true);
+                return;
+            }
+
+            // Mobile: Must trigger audio context on click
+            initAudioContext();
+            
+            // Reset
+            stopPerformance();
+            showStatus("Generating audio...", false);
+            
+            // Get selected voice
+            const voice = document.getElementById('voiceSelect').value;
+            
+            // Try Method A: Fetch Blob (Best for download)
+            let success = await tryFetchAudio(voice, text);
+            
+            if (!success) {
+                // Try Method B: Google Fallback
+                console.log("Primary API failed, trying Google fallback...");
+                success = await tryGoogleAudio(text);
+            }
+
+            if (!success) {
+                showStatus("Error: Could not generate audio. Check internet.", true);
+            }
+        }
+
+        // 3. Method A: StreamElements (High Quality)
+        async function tryFetchAudio(voice, text) {
+            const url = `${STREAM_API}?voice=${voice}&text=${encodeURIComponent(text)}`;
+            
+            try {
+                // Important: 'referrerPolicy' helps bypass some blocks
+                const response = await fetch(url, { referrerPolicy: "no-referrer" });
+                if (!response.ok) throw new Error("Network response was not ok");
+                
+                const blob = await response.blob();
+                currentBlobUrl = URL.createObjectURL(blob);
+                
+                playAudio(currentBlobUrl);
+                return true;
+            } catch (err) {
+                console.error("Fetch failed:", err);
+                return false;
+            }
+        }
+
+        // 4. Method B: Google TTS (Reliable Fallback)
+        async function tryGoogleAudio(text) {
+            const url = `${GOOGLE_API}&q=${encodeURIComponent(text)}`;
+            // Google usually returns a playable stream directly
+            // We can't easily fetch blob from Google due to strict CORS, 
+            // so we just stream it directly.
+            currentBlobUrl = url; // For download button (opens in tab)
+            playAudio(url);
+            return true;
+        }
+
+        // 5. Play Audio & Beat
+        function playAudio(src) {
+            audioPlayer.src = src;
+            audioPlayer.load();
+            
+            const playPromise = audioPlayer.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    // Playback started
+                    isPlaying = true;
+                    visualizer.classList.add('active');
+                    showStatus("Singing...", false);
+                    
+                    if (beatCheckbox.checked) startBeat();
+
+                    audioPlayer.onended = () => {
+                        stopPerformance();
+                        showStatus("Finished. Press Save to download.", false);
+                    };
+                }).catch(error => {
+                    console.error("Playback error:", error);
+                    showStatus("Auto-play blocked. Press Sing again.", true);
+                });
+            }
+        }
+
+        // 6. Stop Everything
+        function stopPerformance() {
+            isPlaying = false;
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            visualizer.classList.remove('active');
+            stopBeat();
+            statusEl.textContent = "Ready";
+            statusEl.style.color = "#666";
+        }
+
+        // 7. Beat Generator (Web Audio API)
+        function startBeat() {
+            if (!audioContext) return;
+            
+            let tempo = 500; // ms per beat (120 BPM)
+            let tick = 0;
+
+            beatTimer = setInterval(() => {
+                const t = audioContext.currentTime;
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+
+                // Simple Hip-Hop Pattern
+                if (tick % 2 === 0) {
+                    // Kick Drum
+                    osc.frequency.setValueAtTime(150, t);
+                    osc.frequency.exponentialRampToValueAtTime(0.01, t + 0.5);
+                    gain.gain.setValueAtTime(0.8, t);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+                } else {
+                    // Snare/Hat
+                    osc.type = "square";
+                    osc.frequency.setValueAtTime(200, t);
+                    gain.gain.setValueAtTime(0.2, t);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1);
+                }
+
+                osc.start(t);
+                osc.stop(t + 0.5);
+                tick++;
+            }, tempo);
+        }
+
+        function stopBeat() {
+            if (beatTimer) clearInterval(beatTimer);
+        }
+
+        // 8. Download Handler
+        function downloadAudio() {
+            if (!currentBlobUrl) {
+                showStatus("Sing something first!", true);
+                return;
+            }
+
+            // If it's a blob (Method A), we can force download
+            if (currentBlobUrl.startsWith("blob:")) {
+                const a = document.createElement('a');
+                a.href = currentBlobUrl;
+                a.download = `my-song-${Date.now()}.mp3`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                showStatus("Downloading file...", false);
+            } 
+            // If it's a remote URL (Method B), open in new tab
+            else {
+                window.open(currentBlobUrl, '_blank');
+                showStatus("Opened in new tab. Click 'Three Dots' > Download", false);
+            }
+        }
+
+        // Helper for status messages
+        function showStatus(msg, isError) {
+            statusEl.textContent = msg;
+            statusEl.style.color = isError ? "var(--error)" : "var(--primary)";
+        }
+
+    </script>
+</body>
+</html>
